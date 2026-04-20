@@ -150,7 +150,7 @@ async function sincronizarAlertas() {
 // ============================================
 var NOMBRES_USUARIOS = {
     'juan': 'Juan Pablo Londoño',
-    'anderson': 'Anderson Rojas',
+    'anderson': 'Anderzon Rojas',
     'mateo': 'Mateo Guarín',
     'david': 'David Valencia'
 };
@@ -312,7 +312,7 @@ var HORARIOS_RECEPCION = {
 // ============================================
 var CONTRASENAS = {
     'juan': 'juan123',
-    'anderson': 'anderson123',
+    'anderson': 'anderzon123',
     'mateo': 'mateo123',
     'david': 'david123'
 };
