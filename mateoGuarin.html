@@ -124,7 +124,7 @@
             alert('Aviso enviado al supervisor');
         }
         function logout() { sessionStorage.clear(); window.location.href = 'index.html'; }
-        if (verificarSesion()) { actualizarHorario(); verificarAlertas(); setInterval(function() { verificarAlertas(); }, 5000); }
+        if (verificarSesion()) { sincronizarAlertas(); actualizarHorario(); verificarAlertas(); setInterval(function() { sincronizarAlertas(); verificarAlertas(); }, 5000); }
     </script>
 </body>
 </html>

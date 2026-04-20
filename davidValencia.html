@@ -176,9 +176,10 @@
         }
 
         if (verificarSesion()) {
+            sincronizarAlertas();
             actualizarHorario();
             verificarAlertas();
-            setInterval(function() { verificarAlertas(); }, 5000);
+            setInterval(function() { sincronizarAlertas(); verificarAlertas(); }, 5000);
         }
     </script>
 </body>

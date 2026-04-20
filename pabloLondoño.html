@@ -459,8 +459,12 @@
         }
         
         if (verificarSesion()) {
+            sincronizarAlertas();
             cargarAlertas();
-            setInterval(cargarAlertas, 3000);
+            setInterval(function() {
+                sincronizarAlertas();
+                cargarAlertas();
+            }, 3000);
         }
     </script>
 </body>

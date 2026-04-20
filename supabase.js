@@ -6,6 +6,132 @@
 const SUPABASE_URL = 'https://wuvvwoojcqzcvwjwcgce.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dnZ3b29qY3F6Y3Z3andjZ2NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2ODgwMDEsImV4cCI6MjA5MjI2NDAwMX0.54gwvzl8JEOsjDHLmnnKAKPCbj2XjJ3t3obwFyOIYEw';
 
+const TABLA_ALERTAS = 'alertas';
+let syncInProgress = false;
+let lastSyncTime = 0;
+
+// ============================================
+// FUNCIONES DE SUPABASE
+// ============================================
+
+async function syncToSupabase(alerta) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                id: alerta.id,
+                codigo: alerta.codigo,
+                tipo: alerta.tipo,
+                activa: alerta.activa,
+                creado_por: alerta.creadoPor,
+                nombre_creador: alerta.nombreCreador,
+                created_at: alerta.created_at,
+                completada_at: alerta.completada_at || null
+            })
+        });
+        return response.ok;
+    } catch (e) {
+        console.error('Error sync to Supabase:', e);
+        return false;
+    }
+}
+
+async function syncUpdateToSupabase(alerta) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}?id=eq.${alerta.id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                activa: alerta.activa,
+                completada_at: alerta.completada_at || null
+            })
+        });
+        return response.ok;
+    } catch (e) {
+        console.error('Error updating in Supabase:', e);
+        return false;
+    }
+}
+
+async function fetchAlertasFromSupabase() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}?order=created_at.desc&limit=100`, {
+            method: 'GET',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`
+            }
+        });
+        if (response.ok) {
+            return await response.json();
+        }
+        return [];
+    } catch (e) {
+        console.error('Error fetching from Supabase:', e);
+        return [];
+    }
+}
+
+async function sincronizarAlertas() {
+    if (syncInProgress) return;
+    syncInProgress = true;
+    
+    try {
+        const remotas = await fetchAlertasFromSupabase();
+        const locales = obtenerAlertas();
+        
+        const idsLocales = new Set(locales.map(a => a.id));
+        const idsRemotas = new Set(remotas.map(a => a.id));
+        
+        for (let remota of remotas) {
+            if (!idsLocales.has(remota.id)) {
+                const alerta = {
+                    id: remota.id,
+                    codigo: remota.codigo,
+                    tipo: remota.tipo,
+                    activa: remota.activa,
+                    creadoPor: remota.creado_por,
+                    nombreCreador: remota.nombre_creador,
+                    created_at: remota.created_at,
+                    completada_at: remota.completada_at
+                };
+                locales.push(alerta);
+            }
+        }
+        
+        for (let local of locales) {
+            const remota = remotas.find(r => r.id === local.id);
+            if (remota) {
+                if (local.activa !== remota.activa || local.completada_at !== remota.completada_at) {
+                    local.activa = remota.activa;
+                    local.completada_at = remota.completada_at;
+                }
+            } else {
+                await syncToSupabase(local);
+            }
+        }
+        
+        locales.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        localStorage.setItem('alertas', JSON.stringify(locales));
+        lastSyncTime = Date.now();
+    } catch (e) {
+        console.error('Error en sincronizacion:', e);
+    } finally {
+        syncInProgress = false;
+    }
+}
+
 // ============================================
 // Mapas de nombres de usuarios
 // ============================================
@@ -39,7 +165,7 @@ function generarCodigoAutomatico() {
 // ============================================
 
 // Guardar una nueva alerta
-function guardarAlerta(codigo, tipo, enviadoPor) {
+async function guardarAlerta(codigo, tipo, enviadoPor) {
     var alerta = {
         id: Date.now(),
         codigo: codigo,
@@ -52,6 +178,9 @@ function guardarAlerta(codigo, tipo, enviadoPor) {
     var alertas = JSON.parse(localStorage.getItem('alertas') || '[]');
     alertas.push(alerta);
     localStorage.setItem('alertas', JSON.stringify(alertas));
+    
+    syncToSupabase(alerta);
+    
     return alerta;
 }
 
@@ -77,12 +206,13 @@ function obtenerAlertasDelTurno(turno) {
 }
 
 // Completar una alerta (marcarla como hecho)
-function completarAlerta(id) {
+async function completarAlerta(id) {
     var alertas = obtenerAlertas();
     for (var i = 0; i < alertas.length; i++) {
         if (alertas[i].id === id) {
             alertas[i].activa = false;
             alertas[i].completada_at = new Date().toISOString();
+            syncUpdateToSupabase(alertas[i]);
             break;
         }
     }
@@ -90,12 +220,13 @@ function completarAlerta(id) {
 }
 
 // Completar todas las alertas
-function completarTodasAlertas() {
+async function completarTodasAlertas() {
     var alertas = obtenerAlertas();
     alertas.forEach(function(a) { 
         if (a.activa) {
             a.activa = false;
             a.completada_at = new Date().toISOString();
+            syncUpdateToSupabase(a);
         }
     });
     localStorage.setItem('alertas', JSON.stringify(alertas));
@@ -144,3 +275,13 @@ var CONTRASENAS = {
 function verificarContrasena(username, contrasena) {
     return CONTRASENAS[username] === contrasena;
 }
+
+// ============================================
+// Auto-sync al iniciar
+// ============================================
+(function initSync() {
+    sincronizarAlertas();
+    setInterval(function() {
+        sincronizarAlertas();
+    }, 30000);
+})();
