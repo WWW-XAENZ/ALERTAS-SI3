@@ -16,6 +16,7 @@ let lastSyncTime = 0;
 
 async function syncToSupabase(alerta) {
     try {
+        console.log('Enviando alerta a Supabase:', alerta);
         const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}`, {
             method: 'POST',
             headers: {
@@ -35,6 +36,7 @@ async function syncToSupabase(alerta) {
                 completada_at: alerta.completada_at || null
             })
         });
+        console.log('Respuesta Supabase:', response.status, response.statusText);
         return response.ok;
     } catch (e) {
         console.error('Error sync to Supabase:', e);
@@ -66,6 +68,7 @@ async function syncUpdateToSupabase(alerta) {
 
 async function fetchAlertasFromSupabase() {
     try {
+        console.log('Fetching alertas from Supabase...');
         const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}?order=created_at.desc&limit=100`, {
             method: 'GET',
             headers: {
@@ -73,8 +76,11 @@ async function fetchAlertasFromSupabase() {
                 'Authorization': `Bearer ${SUPABASE_KEY}`
             }
         });
+        console.log('Fetch response:', response.status, response.statusText);
         if (response.ok) {
-            return await response.json();
+            const data = await response.json();
+            console.log('Alertas desde Supabase:', data.length);
+            return data;
         }
         return [];
     } catch (e) {
@@ -93,6 +99,7 @@ async function sincronizarAlertas() {
         
         const idsLocales = new Set(locales.map(a => a.id));
         const idsRemotas = new Set(remotas.map(a => a.id));
+        const locallyDeleted = [];
         
         for (let remota of remotas) {
             if (!idsLocales.has(remota.id)) {
@@ -110,20 +117,26 @@ async function sincronizarAlertas() {
             }
         }
         
-        for (let local of locales) {
+        for (let i = locales.length - 1; i >= 0; i--) {
+            const local = locales[i];
             const remota = remotas.find(r => r.id === local.id);
-            if (remota) {
-                if (local.activa !== remota.activa || local.completada_at !== remota.completada_at) {
-                    local.activa = remota.activa;
-                    local.completada_at = remota.completada_at;
-                }
-            } else {
-                await syncToSupabase(local);
+            if (!remota) {
+                locallyDeleted.push(local.id);
+                locales.splice(i, 1);
+            } else if (local.activa !== remota.activa || local.completada_at !== remota.completada_at) {
+                local.activa = remota.activa;
+                local.completada_at = remota.completada_at;
             }
+        }
+        
+        for (let id of locallyDeleted) {
+            deleteFromSupabase(id);
+            console.log('Deleted locally:', id);
         }
         
         locales.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         localStorage.setItem('alertas', JSON.stringify(locales));
+        console.log('Sincronizado: ' + locales.length + ' alertas');
         lastSyncTime = Date.now();
     } catch (e) {
         console.error('Error en sincronizacion:', e);
@@ -232,16 +245,51 @@ async function completarTodasAlertas() {
     localStorage.setItem('alertas', JSON.stringify(alertas));
 }
 
+async function deleteFromSupabase(id) {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}?id=eq.${id}`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'return=minimal'
+            }
+        });
+        return response.ok;
+    } catch (e) {
+        console.error('Error deleting from Supabase:', e);
+        return false;
+    }
+}
+
 // Eliminar una alerta del historial
 function eliminarAlerta(id) {
     var alertas = obtenerAlertas();
     var nuevas = alertas.filter(function(a) { return a.id !== id; });
     localStorage.setItem('alertas', JSON.stringify(nuevas));
+    deleteFromSupabase(id);
 }
 
 // Eliminar todas las alertas (historial completo)
 function eliminarTodasAlertas() {
     localStorage.setItem('alertas', JSON.stringify([]));
+    eliminarTodoSupabase();
+}
+
+async function eliminarTodoSupabase() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${TABLA_ALERTAS}?id=not.eq.0`, {
+            method: 'DELETE',
+            headers: {
+                'apikey': SUPABASE_KEY,
+                'Authorization': `Bearer ${SUPABASE_KEY}`,
+                'Prefer': 'return=minimal'
+            }
+        });
+        console.log('Supabase cleared:', response.status);
+    } catch (e) {
+        console.error('Error deleting all from Supabase:', e);
+    }
 }
 
 // ============================================

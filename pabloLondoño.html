@@ -359,6 +359,8 @@
     
     <script src="supabase.js"></script>
     <script>
+        var ultimaAlertaId = null;
+        
         function verificarSesion() {
             var rol = sessionStorage.getItem('rol');
             if (!rol || rol !== 'supervisor') {
@@ -399,12 +401,17 @@
                 document.getElementById('alertCodigo').textContent = a.codigo;
                 document.getElementById('alertInfo').textContent = getNombreTipo(a.tipo) + ' - ' + a.nombreCreador + ' - ' + formatearHora(a.created_at);
                 
-                if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+                if (ultimaAlertaId !== a.id) {
+                    if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
+                    playNotificationSound();
+                    ultimaAlertaId = a.id;
+                }
             } else {
                 status.className = 'status-badge inactive';
                 status.textContent = 'Sin alertas pendientes';
                 alertBox.className = 'alert-box';
                 emptyState.style.display = 'block';
+                ultimaAlertaId = null;
             }
             
             var html = '';
@@ -417,12 +424,12 @@
                 html += '</div>';
                 html += '<div class="history-meta">' + a.nombreCreador + ' - ' + formatearHora(a.created_at) + '</div>';
                 
+                html += '<div class="history-actions">';
                 if (a.activa) {
-                    html += '<div class="history-actions">';
                     html += '<button class="btn-small btn-success" onclick="completarUna(' + a.id + ')">COMPLETAR</button>';
-                    html += '<button class="btn-small btn-danger-outline" onclick="eliminarUna(' + a.id + ')">ELIMINAR</button>';
-                    html += '</div>';
                 }
+                html += '<button class="btn-small btn-danger-outline" onclick="eliminarUna(' + a.id + ')">ELIMINAR</button>';
+                html += '</div>';
                 html += '</div>';
             }
             
@@ -449,8 +456,12 @@
         
         function limpiarHistorial() {
             if (!confirm('Eliminar todo el historial?')) return;
-            eliminarTodasAlertas();
-            cargarAlertas();
+            localStorage.setItem('alertas', '[]');
+            eliminarTodoSupabase();
+            setTimeout(function() {
+                localStorage.setItem('alertas', '[]');
+                cargarAlertas();
+            }, 500);
         }
         
         function logout() {
@@ -465,6 +476,26 @@
                 sincronizarAlertas();
                 cargarAlertas();
             }, 3000);
+        }
+        
+        function playNotificationSound() {
+            try {
+                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                var now = audioCtx.currentTime;
+                [880, 1100, 880, 1100].forEach(function(freq, i) {
+                    var osc = audioCtx.createOscillator();
+                    var gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'square';
+                    gain.gain.setValueAtTime(0.2, now + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.14);
+                    osc.start(now + i * 0.15);
+                    osc.stop(now + i * 0.15 + 0.15);
+                });
+            } catch(e) {}
         }
     </script>
 </body>
