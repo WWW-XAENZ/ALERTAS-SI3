@@ -394,6 +394,7 @@
             
             if (alertasActivas.length > 0) {
                 var a = alertasActivas[0];
+                var isNew = ultimaAlertaId !== a.id;
                 status.className = 'status-badge active';
                 status.textContent = 'ALERTA ACTIVA';
                 alertBox.className = 'alert-box visible';
@@ -401,7 +402,8 @@
                 document.getElementById('alertCodigo').textContent = a.codigo;
                 document.getElementById('alertInfo').textContent = getNombreTipo(a.tipo) + ' - ' + a.nombreCreador + ' - ' + formatearHora(a.created_at);
                 
-                if (ultimaAlertaId !== a.id) {
+                if (isNew) {
+                    console.log('Nueva alerta:', a.id);
                     if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
                     playNotificationSound();
                     ultimaAlertaId = a.id;
@@ -470,6 +472,13 @@
         }
         
         if (verificarSesion()) {
+            document.addEventListener('click', function() {
+                try {
+                    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    if (ctx.state === 'suspended') ctx.resume();
+                } catch(e) {}
+            }, { once: true });
+            
             sincronizarAlertas();
             cargarAlertas();
             setInterval(function() {
@@ -479,8 +488,10 @@
         }
         
         function playNotificationSound() {
+            console.log('Playing notification sound');
             try {
                 var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                console.log('AudioCtx state:', audioCtx.state);
                 if (audioCtx.state === 'suspended') audioCtx.resume();
                 var now = audioCtx.currentTime;
                 [880, 1100, 880, 1100].forEach(function(freq, i) {
