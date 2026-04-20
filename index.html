@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SI3 - Sistema de Avisos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1E3A5F;
+            --primary-light: #2D5A87;
+            --accent: #E85D04;
+            --accent-light: #F97316;
+            --bg: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --text: #0F172A;
+            --text-secondary: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --danger: #EF4444;
+            --shadow: 0 10px 40px rgba(0,0,0,0.1);
+            --shadow-hover: 0 20px 50px rgba(0,0,0,0.15);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(232, 93, 4, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(30, 58, 95, 0.08) 0%, transparent 50%);
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 380px;
+        }
+        
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo-section img {
+            width: 70px;
+            height: auto;
+            margin-bottom: 16px;
+        }
+        
+        .logo-section h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 1px;
+        }
+        
+        .logo-section p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+        
+        .login-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+        
+        .login-card h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .users-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .user-btn {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+        }
+        
+        .user-btn:hover {
+            border-color: var(--accent);
+            background: #FFF7ED;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(232, 93, 4, 0.15);
+        }
+        
+        .user-btn.selected {
+            border-color: var(--accent);
+            background: #FFF7ED;
+        }
+        
+        .user-btn .avatar {
+            width: 48px;
+            height: 48px;
+            background: var(--primary);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .user-btn .info {
+            flex: 1;
+        }
+        
+        .user-btn .nombre {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .user-btn .rol {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .password-section {
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .password-section.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .password-section label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        
+        .password-section input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 16px;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        
+        .password-section input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .btn-ingresar {
+            width: 100%;
+            padding: 18px;
+            font-size: 15px;
+            font-weight: 600;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 16px;
+        }
+        
+        .btn-ingresar:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo-section">
+            <img src="Logo-Web-SI3.png" alt="SI3">
+            <h1>SISTEMA DE AVISOS</h1>
+            <p>Panel de Control</p>
+        </div>
+        
+        <div class="login-card">
+            <h2>Selecciona tu usuario</h2>
+            
+            <div class="users-grid">
+                <button class="user-btn" onclick="selectUser('juan', 'pabloLondoño.html')">
+                    <div class="avatar">JL</div>
+                    <div class="info">
+                        <div class="nombre">Juan Pablo Londoño</div>
+                        <div class="rol">Supervisor</div>
+                    </div>
+                </button>
+                
+                <button class="user-btn" onclick="selectUser('anderson', 'anderzonRojas.html')">
+                    <div class="avatar">AR</div>
+                    <div class="info">
+                        <div class="nombre">Anderson Rojas</div>
+                        <div class="rol">Recepcion</div>
+                    </div>
+                </button>
+                
+                <button class="user-btn" onclick="selectUser('mateo', 'mateoGuarin.html')">
+                    <div class="avatar">MG</div>
+                    <div class="info">
+                        <div class="nombre">Mateo Guarín</div>
+                        <div class="rol">Alistador</div>
+                    </div>
+                </button>
+                
+                <button class="user-btn" onclick="selectUser('david', 'davidValencia.html')">
+                    <div class="avatar">DV</div>
+                    <div class="info">
+                        <div class="nombre">David Valencia</div>
+                        <div class="rol">Alistador</div>
+                    </div>
+                </button>
+            </div>
+            
+            <div class="password-section" id="passwordSection">
+                <label>Ingresa tu contrasena</label>
+                <input type="password" id="password" placeholder="Contrasena" onkeypress="handleEnter(event)">
+                <button class="btn-ingresar" onclick="doLogin()">INGRESAR</button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            SI3 - Sistema de Avisos v2.0
+        </div>
+    </div>
+    
+    <script src="supabase.js"></script>
+    <script>
+        var selectedUser = null;
+        var selectedPage = null;
+        
+        function selectUser(user, page) {
+            selectedUser = user;
+            selectedPage = page;
+            
+            document.querySelectorAll('.user-btn').forEach(function(btn) {
+                btn.classList.remove('selected');
+            });
+            event.currentTarget.classList.add('selected');
+            document.getElementById('passwordSection').classList.add('show');
+            document.getElementById('password').focus();
+        }
+        
+        function doLogin() {
+            if (!selectedUser) {
+                alert('Selecciona un usuario');
+                return;
+            }
+            
+            var pass = document.getElementById('password').value;
+            
+            if (!pass) {
+                alert('Ingresa tu contrasena');
+                return;
+            }
+            
+            if (verificarContrasena(selectedUser, pass)) {
+                sessionStorage.setItem('usuario', selectedUser);
+                sessionStorage.setItem('rol', selectedUser === 'juan' ? 'supervisor' : (selectedUser === 'anderson' ? 'recepcion' : 'alistador'));
+                window.location.href = selectedPage;
+            } else {
+                alert('Contrasena incorrecta');
+            }
+        }
+        
+        function handleEnter(e) {
+            if (e.key === 'Enter') doLogin();
+        }
+    </script>
+</body>
+</html>
