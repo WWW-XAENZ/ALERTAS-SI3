@@ -372,6 +372,7 @@
             var usuario = sessionStorage.getItem('usuario');
             guardarAlerta(codigo, tipo, usuario);
             document.getElementById('codigoInput').value = '';
+            recordatorioShown = true;
             alert('Aviso enviado al supervisor');
         }
         
@@ -380,8 +381,90 @@
         if (verificarSesion()) {
             sincronizarAlertas();
             actualizarHorario();
+            checkRecordatorio();
             verificarAlertas();
-            setInterval(function() { sincronizarAlertas(); verificarAlertas(); }, 5000);
+            setInterval(function() { sincronizarAlertas(); verificarAlertas(); checkRecordatorio(); }, 5000);
+        }
+        
+        var recordatorioShown = false;
+        
+        function checkRecordatorio() {
+            var ahora = new Date();
+            var horaActual = ahora.getHours() * 60 + ahora.getMinutes();
+            var horarios = turno === 1 ? HORARIOS_ALISTADOR_TURNO1 : HORARIOS_ALISTADOR_TURNO2;
+            var status = document.getElementById('status');
+            var alertBox = document.getElementById('alertBox');
+            var misAlertas = obtenerAlertasDelTurno(turno);
+            var tieneAlerta = misAlertas.length > 0;
+            var isRecordatorio = status.textContent === 'FAVOR ENVIAR CODIGO DE ZAP';
+            
+            if (tieneAlerta && isRecordatorio) {
+                status.className = 'status-badge active';
+                status.textContent = 'ALERTA - TURNO ' + turno;
+                alertBox.className = 'alert-box visible';
+                document.getElementById('codigoAlerta').textContent = misAlertas[0].codigo;
+                document.getElementById('codigoAlerta').style.background = 'white';
+                document.getElementById('codigoAlerta').style.color = 'var(--accent)';
+            } else if (!tieneAlerta && isRecordatorio) {
+                status.className = 'status-badge inactive';
+                status.textContent = 'Sin alertas - Turno ' + turno;
+                alertBox.className = 'alert-box';
+                recordatorioShown = false;
+            }
+            
+            for (var i = 0; i < horarios.length; i++) {
+                var parts = horarios[i].split(':');
+                var h = parseInt(parts[0]);
+                var m = parseInt(parts[1]);
+                var horaProgramada = h * 60 + m;
+                
+                if (horaActual >= horaProgramada && horaActual < horaProgramada + 5 && !recordatorioShown && !tieneAlerta) {
+                    recordatorioShown = true;
+                    status.className = 'status-badge active';
+                    status.textContent = 'FAVOR ENVIAR CODIGO DE ZAP';
+                    alertBox.className = 'alert-box visible';
+                    document.getElementById('codigoAlerta').textContent = 'ESPERANDO...';
+                    document.getElementById('codigoAlerta').style.background = '#FEF3C7';
+                    document.getElementById('codigoAlerta').style.color = '#92400E';
+                    
+                    var vibrateLoop = setInterval(function() {
+                        if (navigator.vibrate) navigator.vibrate(300);
+                    }, 1000);
+                    
+                    setTimeout(function() { clearInterval(vibrateLoop); }, 30000);
+                    
+                    playRecordatorioSound();
+                    break;
+                }
+            }
+            
+            if (horaActual >= 5 && horaActual < 60) {
+                recordatorioShown = false;
+            }
+        }
+        
+        function playRecordatorioSound() {
+            try {
+                var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                var now = audioCtx.currentTime;
+                for (var i = 0; i < 10; i++) {
+                    (function(idx) {
+                        setTimeout(function() {
+                            var osc = audioCtx.createOscillator();
+                            var gain = audioCtx.createGain();
+                            osc.connect(gain);
+                            gain.connect(audioCtx.destination);
+                            osc.frequency.value = 880;
+                            osc.type = 'square';
+                            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+                            osc.start();
+                            osc.stop(audioCtx.currentTime + 0.2);
+                        }, idx * 500);
+                    })(i);
+                }
+            } catch(e) {}
         }
     </script>
 </body>
