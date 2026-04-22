@@ -3,8 +3,8 @@
 // ============================================
 
 // Credenciales Supabase (no modificar)
-const SUPABASE_URL = 'https://wuvvwoojcqzcvwjwcgce.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1dnZ3b29qY3F6Y3Z3andjZ2NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2ODgwMDEsImV4cCI6MjA5MjI2NDAwMX0.54gwvzl8JEOsjDHLmnnKAKPCbj2XjJ3t3obwFyOIYEw';
+const SUPABASE_URL = 'https://qhxjwykibsvvalgimnbg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFoeGp3eWtpYnN2dmFsZ2ltbmJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4MTEyMjgsImV4cCI6MjA5MjM4NzIyOH0.CxiWjjlgOC-duZNB_4gxaRtmi-VNC3WNXy4BV5m73JI';
 
 const TABLA_ALERTAS = 'alertas';
 let syncInProgress = false;
